@@ -30,6 +30,8 @@ class Agent:
         
         self.old_path = track.path[1:]
         track.path = []
+        if track.gold_location:
+            self.old_path = track.gold_path[1:]
         # else:
         #     self.old_path = []
         print(track.path)
@@ -41,6 +43,7 @@ class Agent:
             if (percept['Glitter']): # Rule 3a
                 self.actionList.append(Action.GRAB)
                 track.gold_location = self.worldState.agentLocation
+                track.gold_path = track.path + [self.worldState.agentLocation]
             elif (self.worldState.agentHasGold and (self.worldState.agentLocation == [1,1])): # Rule 3b
                 self.actionList.append(Action.CLIMB)
             elif (percept['Bump']): # Rule 3d
@@ -77,7 +80,15 @@ class Agent:
                         self.old_path = self.old_path[1:]
                     else:
                         #optimize this
-                        self.actionList.append(1) #turn left
+                        #self.actionList.append(1) #turn left
+                        new_direction = self.get_direction(next_move)
+                        turns = self.get_turns(new_direction) % 4
+                        if turns <= 2:
+                            for _ in range(turns):
+                                self.actionList.append(2) #turn right
+                        else:
+                            for _ in range(4 - turns):
+                                self.actionList.append(1)
 
 
 
@@ -98,7 +109,17 @@ class Agent:
                         self.actionList.append(Action.GOFORWARD)
                         track.path = track.path[:-1]
                     else:
-                        self.actionList.append(1) #turn left
+                        #self.actionList.append(1) #turn left
+                        new_direction = self.get_direction(next_move)
+                        turns = self.get_turns(new_direction) % 4
+                        if turns <= 2:
+                            for _ in range(turns):
+                                self.actionList.append(2) #turn right
+                        else:
+                            for _ in range(4 - turns):
+                                self.actionList.append(1)
+
+
                 #process old path to get to spot with gold or wumpus
                 
 
@@ -157,7 +178,7 @@ class Agent:
 
         action = self.actionList.pop(0)
         self.previousAction = action
-        time.sleep(.35)
+        time.sleep(.1)
         return action
 
     def get_turns(self, new_direction):
@@ -168,11 +189,11 @@ class Agent:
             if v == new_move:
                 return k
 
-    def get_best_turn(self, turns):
-        if turns == -1 or turns == 3:
-            self.actionList.append(1) #turn left
-        else:
-            self.actionList.append(2)
+    # def get_best_turn(self, turns):
+    #     if turns == -1 or turns == 3:
+    #         self.actionList.append(1) #turn left
+    #     else:
+    #         self.actionList.append(2)
 
     def get_all_moves(self):
         potential_moves = []
@@ -182,23 +203,23 @@ class Agent:
                 potential_moves.append(self.orientation_move[k])
         return potential_moves
 
-    def get_min_direction(self):
-        min_distance = 100000
-        direction = [1,0]
-        direction = None
-        for k,v in self.orientation_move.items():
-            new_loc = self.add_vectors(v, self.worldState.agentLocation)
-            if new_loc == track.wumpus_location:
-                continue
-            dist_abs = self.add_vectors(new_loc, self.negative_vector(track.gold_location))
-            t = self.get_turns(k)
-            dist = self.get_abs_sum(dist_abs)
+    # def get_min_direction(self):
+    #     min_distance = 100000
+    #     direction = [1,0]
+    #     direction = None
+    #     for k,v in self.orientation_move.items():
+    #         new_loc = self.add_vectors(v, self.worldState.agentLocation)
+    #         if new_loc == track.wumpus_location:
+    #             continue
+    #         dist_abs = self.add_vectors(new_loc, self.negative_vector(track.gold_location))
+    #         t = self.get_turns(k)
+    #         dist = self.get_abs_sum(dist_abs)
 
-            if dist < min_distance:
-                direction = v
-                min_distance = dist
-                turns = t
-        return direction, turns
+    #         if dist < min_distance:
+    #             direction = v
+    #             min_distance = dist
+    #             turns = t
+    #     return direction, turns
     
     def UpdateState(self, percept):
         currentOrientation = self.worldState.agentOrientation
@@ -233,8 +254,8 @@ class Agent:
         return next_move
         # get orientation by turning
 
-    def get_abs_sum(self, vec):
-        return sum([abs(v) for v in vec])
+    # def get_abs_sum(self, vec):
+    #     return sum([abs(v) for v in vec])
         
     def Move(self):
         X = self.worldState.agentLocation[0]
@@ -267,6 +288,7 @@ class Tracking():
         #self.wumpus_location = [2,3]
         self.next_location = None
         self.explored = [[1,1]]
+        self.gold_path = []
 
 track = Tracking()
 
@@ -298,7 +320,7 @@ def PyAgent_Process (stench,breeze,glitter,bump,scream):
 def PyAgent_GameOver (score):
     print "PyAgent_GameOver: score = " + str(score)
     print "Explored: score = " + str(track.explored)
-    print "Stench: score = " + str(track.stenches)
+    print "Stench: score = " + str(track.gold_path)
     #print 'next_location' + track.next_location
     print track.wumpus_location
 
