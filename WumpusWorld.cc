@@ -8,7 +8,7 @@
 #include <algorithm>
 #include "WumpusWorld.h"
 
-#define PIT_PROBABILITY 0.2
+#define PIT_PROBABILITY 0
 
 using namespace std;
 
@@ -22,8 +22,10 @@ WumpusWorld::WumpusWorld (int size)
 	x = 1; y=1;
 	while ((x == 1) && (y == 1))
 	{
-		x = (rand() % size) + 1;
-		y = (rand() % size) + 1;
+		// x = (rand() % size) + 1;
+		x = 4;
+		// y = (rand() % size) + 1;
+		y = 2;
 	}
 	currentState.wumpusLocation = Location (x, y);
 
@@ -32,7 +34,9 @@ WumpusWorld::WumpusWorld (int size)
 	while ((x == 1) && (y == 1))
 	{
 		x = (rand() % size) + 1;
+		x = 4;
 		y = (rand() % size) + 1;
+		y = 4;
 	}
 	currentState.goldLocation = Location (x, y);
 
