@@ -23,7 +23,7 @@ WumpusWorld::WumpusWorld (int size)
 	while ((x == 1) && (y == 1))
 	{
 		// x = (rand() % size) + 1;
-		x = 4;
+		x = 1;
 		// y = (rand() % size) + 1;
 		y = 2;
 	}
@@ -34,7 +34,7 @@ WumpusWorld::WumpusWorld (int size)
 	while ((x == 1) && (y == 1))
 	{
 		x = (rand() % size) + 1;
-		x = 4;
+		x = 3;
 		y = (rand() % size) + 1;
 		y = 3;
 	}

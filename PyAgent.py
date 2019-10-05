@@ -27,10 +27,13 @@ class Agent:
         self.orientation_move = {0:[1,0], 1:[0,1], 2:[-1,0], 3:[0,-1]}
         self.previousAction = Action.CLIMB
         self.actionList = []
-        self.explored = [[1,1]]
-        self.old_path = track.path
+        
+        self.old_path = track.path[1:]
         track.path = []
+        # else:
+        #     self.old_path = []
         print(track.path)
+        print(self.old_path)
     
     def Process(self, percept):
         self.UpdateState(percept)
@@ -50,38 +53,66 @@ class Agent:
                     X -= 1
                 elif self.worldState.agentOrientation == 3:
                     Y -= 1
-                if [X,Y] not in self.explored:
-                    self.explored.append([X,Y])
-                randomAction = 1 #randint(1,2) # 1=TURNLEFT, 2=TURNRIGHT
-                self.actionList.append(randomAction)
+                if [X,Y] not in track.explored:
+                    track.explored.append([X,Y])
+                self.actionList.append(1)
                 track.path = track.path[:-1]
-            else: # Rule 3e
+            
+            else: 
+
                 if (percept['Stench']): # Rule 3c
                     if self.worldState.agentLocation in track.stenches:
                         track.stenches.append(self.worldState.agentLocation)
                 
+                if len(self.old_path) > 0:
+                    print('Using Old path')
+                    print(self.old_path)
+                    print(track.path)
+                    next_loc = self.old_path[0]
+                    next_move = self.get_move(next_loc)
+
+                    if self.orientation_move[self.worldState.agentOrientation] == next_move:
+                        self.actionList.append(Action.GOFORWARD)
+                        track.path.append(self.worldState.agentLocation)
+                        self.old_path = self.old_path[1:]
+                    else:
+                        #optimize this
+                        self.actionList.append(1) #turn left
+
+
+
+
+
+
+
+
+
+                
+                
                 #if have gold, follow path back to start
-                if track.path and self.worldState.agentHasGold:
+                elif track.path and self.worldState.agentHasGold:
                     next_loc = track.path[-1]
                     next_move = self.get_move(next_loc)
-                    #update next location in case we die
+
                     if self.orientation_move[self.worldState.agentOrientation] == next_move:
                         self.actionList.append(Action.GOFORWARD)
                         track.path = track.path[:-1]
                     else:
                         self.actionList.append(1) #turn left
+                #process old path to get to spot with gold or wumpus
+                
 
                 # if we know the gold location from previous tries
-                elif track.gold_location:
-                    next_move, turns = self.get_min_direction()
-                    #need to consider bump (if bump, then take direction we currently are in and exclude from list)
-                    track.next_location = self.add_vectors(self.worldState.agentLocation,next_move)
-                    if self.orientation_move[self.worldState.agentOrientation] == next_move:
-                        # we are turned the correct way
-                        self.actionList.append(Action.GOFORWARD)
-                        track.path.append(self.worldState.agentLocation)
-                    else:
-                        self.get_best_turn(turns)
+                # elif track.gold_location:
+                #     next_move, turns = self.get_min_direction()
+                #     #need to consider bump (if bump, then take direction we currently are in and exclude from list)
+                #     track.next_location = self.add_vectors(self.worldState.agentLocation,next_move)
+                #     if self.orientation_move[self.worldState.agentOrientation] == next_move:
+                #         # we are turned the correct way
+                #         self.actionList.append(Action.GOFORWARD)
+                #         track.path.append(self.worldState.agentLocation)
+                #     else:
+                #         self.get_best_turn(turns)
                         
 
                 else:
@@ -92,12 +123,14 @@ class Agent:
                     #we we are about to run into a wumpus, then pick another route
                     if track.next_location == track.wumpus_location or percept['Bump']:
                         self.actionList.append(1)
-                    elif track.next_location in (self.explored):
+                    elif track.next_location in (track.explored):
                         potential_moves = self.get_all_moves()
+                        #all potential are explored go to previous path
                         if len(potential_moves) == 0:
                             #turn around and go forward (back)
                             #look at path
                             #track.path = track.path[:-1]
+                            print(track.path)
                             previous_location = track.path[-1]
 
                             #turn and then goforward to previous location in path
@@ -145,7 +178,7 @@ class Agent:
         potential_moves = []
         for k in self.orientation_move:
             potential_move = self.add_vectors(self.orientation_move[k], self.worldState.agentLocation)
-            if potential_move not in self.explored and potential_move != track.wumpus_location:
+            if potential_move not in track.explored and potential_move != track.wumpus_location:
                 potential_moves.append(self.orientation_move[k])
         return potential_moves
 
@@ -214,8 +247,8 @@ class Agent:
             X  = X - 1
         if (self.worldState.agentOrientation == Orientation.DOWN):
             Y = Y - 1
-        if [X,Y] not in self.explored:
-            self.explored.append([X,Y])
+        if [X,Y] not in track.explored:
+            track.explored.append([X,Y])
         self.worldState.agentLocation = [X,Y]
 
     
@@ -233,6 +266,7 @@ class Tracking():
         self.wumpus_location = None
         #self.wumpus_location = [2,3]
         self.next_location = None
+        self.explored = [[1,1]]
 
 track = Tracking()
 
@@ -263,7 +297,7 @@ def PyAgent_Process (stench,breeze,glitter,bump,scream):
 
 def PyAgent_GameOver (score):
     print "PyAgent_GameOver: score = " + str(score)
-    print "Explored: score = " + str(myAgent.explored)
+    print "Explored: score = " + str(track.explored)
     print "Stench: score = " + str(track.stenches)
     #print 'next_location' + track.next_location
     print track.wumpus_location
