@@ -36,7 +36,7 @@ WumpusWorld::WumpusWorld (int size)
 		x = (rand() % size) + 1;
 		x = 4;
 		y = (rand() % size) + 1;
-		y = 4;
+		y = 3;
 	}
 	currentState.goldLocation = Location (x, y);
 

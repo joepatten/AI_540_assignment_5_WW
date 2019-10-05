@@ -28,6 +28,9 @@ class Agent:
         self.previousAction = Action.CLIMB
         self.actionList = []
         self.explored = [[1,1]]
+        self.old_path = track.path
+        track.path = []
+        print(track.path)
     
     def Process(self, percept):
         self.UpdateState(percept)
@@ -56,21 +59,19 @@ class Agent:
                 if (percept['Stench']): # Rule 3c
                     if self.worldState.agentLocation in track.stenches:
                         track.stenches.append(self.worldState.agentLocation)
-                #look in front using orientation, if explored, turn left. might have to look at all
-                #add next move here in explored
-                #turn until oriented correctly
+                
+                #if have gold, follow path back to start
                 if track.path and self.worldState.agentHasGold:
-                    #have gold and go backwards to start
                     next_loc = track.path[-1]
                     next_move = self.get_move(next_loc)
                     #update next location in case we die
-                    time.sleep(.2)
                     if self.orientation_move[self.worldState.agentOrientation] == next_move:
                         self.actionList.append(Action.GOFORWARD)
                         track.path = track.path[:-1]
                     else:
                         self.actionList.append(1) #turn left
 
+                # if we know the gold location from previous tries
                 elif track.gold_location:
                     next_move, turns = self.get_min_direction()
                     #need to consider bump (if bump, then take direction we currently are in and exclude from list)
@@ -96,19 +97,13 @@ class Agent:
                         if len(potential_moves) == 0:
                             #turn around and go forward (back)
                             #look at path
-                            print(track.path)
                             #track.path = track.path[:-1]
                             previous_location = track.path[-1]
-
-                            print('previous_location')
-                            print previous_location
 
                             #turn and then goforward to previous location in path
                             next_move = self.add_vectors(previous_location, self.worldState.agentLocation, negative=True)
 
                             new_direction = self.get_direction(next_move)
-                            print(new_direction)
-                            print(next_move)
                             turns = self.get_turns(new_direction) % 4
                             if turns <= 2:
                                 for _ in range(turns):
@@ -123,12 +118,10 @@ class Agent:
                             #turn left until heading toward unexplored
                             self.actionList.append(1)
                             #next_move = potential_moves[0]
-        
-
-
                     else:
                         self.actionList.append(Action.GOFORWARD)
                         track.path.append(self.worldState.agentLocation)
+
         action = self.actionList.pop(0)
         self.previousAction = action
         time.sleep(.35)
@@ -139,8 +132,6 @@ class Agent:
 
     def get_direction(self, new_move):
         for k,v in self.orientation_move.items():
-            print(v)
-            print(new_move)
             if v == new_move:
                 return k
 
@@ -165,7 +156,6 @@ class Agent:
         for k,v in self.orientation_move.items():
             new_loc = self.add_vectors(v, self.worldState.agentLocation)
             if new_loc == track.wumpus_location:
-                print 'wow we found teh wunous location'
                 continue
             dist_abs = self.add_vectors(new_loc, self.negative_vector(track.gold_location))
             t = self.get_turns(k)
@@ -239,9 +229,9 @@ class Tracking():
         self.path = []
         self.stenches = []
         self.gold_location = None
-        #self.gold_location = [4,4]
+        #self.gold_location = [4,3]
         self.wumpus_location = None
-        #self.wumpus_location = [4,3]
+        #self.wumpus_location = [2,3]
         self.next_location = None
 
 track = Tracking()
