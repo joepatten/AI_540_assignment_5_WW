@@ -3,9 +3,8 @@
 from random import randint
 import Action
 import Orientation
-import time
 from operator import mul
-
+import time
     
 class WorldState:
     def __init__(self):
@@ -36,28 +35,21 @@ class Agent:
             self.old_path = track.gold_path[1:]
     
     def Process(self, percept):
+        #time.sleep(.2)
         self.UpdateState(percept)
-        # use logic to find wumpus (is possible)
+        # use logic to find wumpus (if possible)
         self.check_stenches()
         if (not self.actionList):
             if (percept['Glitter']):
                 self.actionList.append(Action.GRAB)
                 track.gold_location = self.worldState.agentLocation
                 track.gold_path = track.path + [self.worldState.agentLocation]
+
             elif (self.worldState.agentHasGold and (self.worldState.agentLocation == [1,1])): # Rule 3b
                 self.actionList.append(Action.CLIMB)
-            elif (percept['Bump']): # Rule 3d
-                X, Y = self.worldState.agentLocation
-                if self.worldState.agentOrientation == 0:
-                    X += 1
-                elif self.worldState.agentOrientation == 1:
-                    Y += 1
-                elif self.worldState.agentOrientation == 2:
-                    X -= 1
-                elif self.worldState.agentOrientation == 3:
-                    Y -= 1
-                if [X,Y] not in track.explored:
-                    track.explored.append([X,Y])
+
+            elif (percept['Bump']):
+                self.Move(percept['Bump'])
                 self.actionList.append(1)
                 track.path = track.path[:-1]
             
@@ -65,8 +57,13 @@ class Agent:
                 if (percept['Stench']):
                     if self.worldState.agentLocation not in track.stenches:
                         track.stenches.append(self.worldState.agentLocation)
-                        
-
+                        if not track.wumpus_location:
+                            self.actionList.append(1)
+                            self.actionList.append(1)
+                            self.actionList.append(Action.GOFORWARD)
+                            track.path = track.path[:-1]
+                            #bracktrack once
+                            #track.path
                 
                 if len(self.old_path) > 0:
                     next_loc = self.old_path[0]
@@ -77,16 +74,7 @@ class Agent:
                         track.path.append(self.worldState.agentLocation)
                         self.old_path = self.old_path[1:]
                     else:
-                        #optimize this
-                        #self.actionList.append(1) #turn left
-                        new_direction = self.get_direction(next_move)
-                        turns = self.get_turns(new_direction) % 4
-                        if turns <= 2:
-                            for _ in range(turns):
-                                self.actionList.append(2) #turn right
-                        else:
-                            for _ in range(4 - turns):
-                                self.actionList.append(1)              
+                        self.minimal_turn(next_move)              
                 
                 #if have gold, follow path back to start
                 elif track.path and self.worldState.agentHasGold:
@@ -97,15 +85,7 @@ class Agent:
                         self.actionList.append(Action.GOFORWARD)
                         track.path = track.path[:-1]
                     else:
-                        #self.actionList.append(1) #turn left
-                        new_direction = self.get_direction(next_move)
-                        turns = self.get_turns(new_direction) % 4
-                        if turns <= 2:
-                            for _ in range(turns):
-                                self.actionList.append(2) #turn right
-                        else:
-                            for _ in range(4 - turns):
-                                self.actionList.append(1)                        
+                        self.minimal_turn(next_move)                       
 
                 else:
                     # uninformed search
@@ -121,15 +101,7 @@ class Agent:
                             #turn and then goforward to previous location in path
                             previous_location = track.path[-1]
                             next_move = self.add_vectors(previous_location, self.worldState.agentLocation, negative=True)
-
-                            new_direction = self.get_direction(next_move)
-                            turns = self.get_turns(new_direction) % 4
-                            if turns <= 2:
-                                for _ in range(turns):
-                                    self.actionList.append(2) #turn right
-                            else:
-                                for _ in range(4 - turns):
-                                    self.actionList.append(1)
+                            self.minimal_turn(next_move) 
                             
                             self.actionList.append(Action.GOFORWARD)
                             track.path = track.path[:-1]
@@ -143,8 +115,17 @@ class Agent:
 
         action = self.actionList.pop(0)
         self.previousAction = action
-        time.sleep(.2)
         return action
+
+    def minimal_turn(self, next_move):
+        new_direction = self.get_direction(next_move)
+        turns = self.get_turns(new_direction) % 4
+        if turns <= 2:
+            for _ in range(turns):
+                self.actionList.append(2) #turn right
+        else:
+            for _ in range(4 - turns):
+                self.actionList.append(1) 
 
     def get_turns(self, new_direction):
         return self.worldState.agentOrientation - new_direction
@@ -166,7 +147,7 @@ class Agent:
         currentOrientation = self.worldState.agentOrientation
         if (self.previousAction == Action.GOFORWARD):
             if (not percept['Bump']):
-                self.Move()
+                self.Move(percept['Bump'])
         if (self.previousAction == Action.TURNLEFT):
             self.worldState.agentOrientation = (currentOrientation + 1) % 4
         if (self.previousAction == Action.TURNRIGHT):
@@ -194,7 +175,7 @@ class Agent:
         next_move = self.add_vectors(new_loc, neg_current_loc)
         return next_move
         
-    def Move(self):
+    def Move(self, bump):
         X = self.worldState.agentLocation[0]
         Y = self.worldState.agentLocation[1]
         if (self.worldState.agentOrientation == Orientation.RIGHT):
@@ -207,7 +188,8 @@ class Agent:
             Y = Y - 1
         if [X,Y] not in track.explored:
             track.explored.append([X,Y])
-        self.worldState.agentLocation = [X,Y]
+        if not bump:
+            self.worldState.agentLocation = [X,Y]
 
     def check_stenches(self):
         if not track.wumpus_location:                   
@@ -232,7 +214,6 @@ class Agent:
                         wumpus_location[(j+1)%2] = max(s1[(j+1)%2], s2[(j+1)%2]) - 1
 
                 # else we need to check 2 spots that are kitty corner
-                
                 if reduce(mul, wumpus_location, 1) == 0:
                     if s1[0] > s2[1] and s1[1] < s2[1]:
                         if [s1[0]-2, s1[1]] in track.explored or [s2[0], s2[1]-2] in track.explored or [s1[0]-1, s1[1]] in track.explored:
@@ -266,8 +247,6 @@ class Agent:
                 track.wumpus_location = wumpus_location
     
 
-        
-# Global agent
 myAgent = 0
 track = 0
 
@@ -280,8 +259,6 @@ class Tracking():
         self.next_location = None
         self.explored = [[1,1]]
         self.gold_path = []
-
-
 
 def PyAgent_Constructor ():
     print "PyAgent_Constructor"
@@ -306,12 +283,7 @@ def PyAgent_Initialize ():
 def PyAgent_Process (stench,breeze,glitter,bump,scream):
     global myAgent
     percept = {'Stench': bool(stench), 'Breeze': bool(breeze), 'Glitter': bool(glitter), 'Bump': bool(bump), 'Scream': bool(scream)}
-    #print "PyAgent_Process: percept = " + str(percept)
     return myAgent.Process(percept)
 
 def PyAgent_GameOver (score):
     print "PyAgent_GameOver: score = " + str(score)
-    print "Stench: score = " + str(track.stenches)
-    #print 'next_location' + track.next_location
-    print 'wumpus_location' + str(track.wumpus_location)
-
