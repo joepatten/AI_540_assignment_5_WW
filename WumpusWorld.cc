@@ -22,10 +22,8 @@ WumpusWorld::WumpusWorld (int size)
 	x = 1; y=1;
 	while ((x == 1) && (y == 1))
 	{
-		// x = (rand() % size) + 1;
-		x = 4;
-		// y = (rand() % size) + 1;
-		y = 2;
+		x = (rand() % size) + 1;
+		y = (rand() % size) + 1;
 	}
 	currentState.wumpusLocation = Location (x, y);
 
@@ -34,9 +32,7 @@ WumpusWorld::WumpusWorld (int size)
 	while ((x == 1) && (y == 1))
 	{
 		x = (rand() % size) + 1;
-		x = 4;
 		y = (rand() % size) + 1;
-		y = 3;
 	}
 	currentState.goldLocation = Location (x, y);
 

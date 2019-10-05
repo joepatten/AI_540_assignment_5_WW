@@ -23,7 +23,7 @@ using namespace std;
 int main (int argc, char *argv[])
 {
 	int worldSize = 4;
-	int numTrials = 1;
+	int numTrials = 5;
 	int numTries = 3;
 	unsigned seed;
 	char* worldFile;
